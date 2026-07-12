@@ -15,7 +15,7 @@ INSERT INTO entries (
   amount
 ) VALUES (
   $1, $2
-) RETURNING id, account_id, amount, created_at
+) RETURNING id, account_id, amount, created_at, prev_hash, hash
 `
 
 type CreateEntryParams struct {
@@ -31,12 +31,14 @@ func (q *Queries) CreateEntry(ctx context.Context, arg CreateEntryParams) (Entry
 		&i.AccountID,
 		&i.Amount,
 		&i.CreatedAt,
+		&i.PrevHash,
+		&i.Hash,
 	)
 	return i, err
 }
 
 const getEntry = `-- name: GetEntry :one
-SELECT id, account_id, amount, created_at FROM entries
+SELECT id, account_id, amount, created_at, prev_hash, hash FROM entries
 WHERE id = $1 LIMIT 1
 `
 
@@ -48,12 +50,62 @@ func (q *Queries) GetEntry(ctx context.Context, id int64) (Entry, error) {
 		&i.AccountID,
 		&i.Amount,
 		&i.CreatedAt,
+		&i.PrevHash,
+		&i.Hash,
 	)
 	return i, err
 }
 
+const getLastEntryHash = `-- name: GetLastEntryHash :one
+SELECT hash FROM entries
+ORDER BY id DESC
+LIMIT 1
+`
+
+func (q *Queries) GetLastEntryHash(ctx context.Context) (string, error) {
+	row := q.db.QueryRowContext(ctx, getLastEntryHash)
+	var hash string
+	err := row.Scan(&hash)
+	return hash, err
+}
+
+const listAllEntries = `-- name: ListAllEntries :many
+SELECT id, account_id, amount, created_at, prev_hash, hash FROM entries
+ORDER BY id
+`
+
+func (q *Queries) ListAllEntries(ctx context.Context) ([]Entry, error) {
+	rows, err := q.db.QueryContext(ctx, listAllEntries)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Entry{}
+	for rows.Next() {
+		var i Entry
+		if err := rows.Scan(
+			&i.ID,
+			&i.AccountID,
+			&i.Amount,
+			&i.CreatedAt,
+			&i.PrevHash,
+			&i.Hash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listEntries = `-- name: ListEntries :many
-SELECT id, account_id, amount, created_at FROM entries
+SELECT id, account_id, amount, created_at, prev_hash, hash FROM entries
 WHERE account_id = $1
 ORDER BY id
 LIMIT $2
@@ -80,6 +132,8 @@ func (q *Queries) ListEntries(ctx context.Context, arg ListEntriesParams) ([]Ent
 			&i.AccountID,
 			&i.Amount,
 			&i.CreatedAt,
+			&i.PrevHash,
+			&i.Hash,
 		); err != nil {
 			return nil, err
 		}
@@ -92,4 +146,32 @@ func (q *Queries) ListEntries(ctx context.Context, arg ListEntriesParams) ([]Ent
 		return nil, err
 	}
 	return items, nil
+}
+
+const setEntryHash = `-- name: SetEntryHash :one
+UPDATE entries
+SET prev_hash = $2,
+    hash = $3
+WHERE id = $1
+RETURNING id, account_id, amount, created_at, prev_hash, hash
+`
+
+type SetEntryHashParams struct {
+	ID       int64  `json:"id"`
+	PrevHash string `json:"prev_hash"`
+	Hash     string `json:"hash"`
+}
+
+func (q *Queries) SetEntryHash(ctx context.Context, arg SetEntryHashParams) (Entry, error) {
+	row := q.db.QueryRowContext(ctx, setEntryHash, arg.ID, arg.PrevHash, arg.Hash)
+	var i Entry
+	err := row.Scan(
+		&i.ID,
+		&i.AccountID,
+		&i.Amount,
+		&i.CreatedAt,
+		&i.PrevHash,
+		&i.Hash,
+	)
+	return i, err
 }

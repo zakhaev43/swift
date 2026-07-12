@@ -21,12 +21,15 @@ type Querier interface {
 	GetAccount(ctx context.Context, id int64) (Account, error)
 	GetAccountForUpdate(ctx context.Context, id int64) (Account, error)
 	GetEntry(ctx context.Context, id int64) (Entry, error)
+	GetLastEntryHash(ctx context.Context) (string, error)
 	GetSession(ctx context.Context, id uuid.UUID) (Session, error)
 	GetTransfer(ctx context.Context, id int64) (Transfer, error)
 	GetUser(ctx context.Context, username string) (User, error)
 	ListAccounts(ctx context.Context, arg ListAccountsParams) ([]Account, error)
+	ListAllEntries(ctx context.Context) ([]Entry, error)
 	ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error)
 	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]Transfer, error)
+	SetEntryHash(ctx context.Context, arg SetEntryHashParams) (Entry, error)
 	UpdateAccount(ctx context.Context, arg UpdateAccountParams) (Account, error)
 }
 

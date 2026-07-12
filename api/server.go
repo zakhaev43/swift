@@ -53,6 +53,7 @@ func (server *Server) setUpRouter() {
 	authRoutes.DELETE("/accounts/:id", server.deleteAccount)
 	authRoutes.PUT("/accounts", server.updateAccount)
 	authRoutes.POST("/transfers", server.createTransfer)
+	authRoutes.GET("/ledger/verify", server.verifyLedger)
 
 	//They dont require auth middleware
 	router.POST("/users", server.createUser)
