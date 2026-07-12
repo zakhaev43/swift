@@ -5,6 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { loginUser, ApiError } from "@/lib/api";
 import { saveSession } from "@/lib/auth";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { ErrorBanner } from "@/components/ui/Feedback";
+import { Input, Label } from "@/components/ui/Field";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,40 +33,49 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex-1 flex items-center justify-center p-6">
-      <form onSubmit={onSubmit} className="w-full max-w-sm flex flex-col gap-4">
-        <h1 className="text-xl font-semibold">Log in</h1>
+    <main className="flex flex-1 items-center justify-center p-6">
+      <Card className="w-full max-w-sm p-8">
+        <div className="mb-6 text-center">
+          <div className="text-sm font-semibold tracking-tight text-ink-primary">
+            Swift Transfer
+          </div>
+          <h1 className="mt-3 text-xl font-semibold text-ink-primary">Log in</h1>
+        </div>
 
-        <input
-          className="border rounded px-3 py-2 border-black/10 dark:border-white/20"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-        <input
-          className="border rounded px-3 py-2 border-black/10 dark:border-white/20"
-          placeholder="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          <div>
+            <Label>Username</Label>
+            <Input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+          <div>
+            <Label>Password</Label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <ErrorBanner message={error} />}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-black text-white dark:bg-white dark:text-black rounded px-3 py-2 disabled:opacity-50"
-        >
-          {loading ? "Logging in..." : "Log in"}
-        </button>
+          <Button type="submit" disabled={loading} className="mt-2 w-full">
+            {loading ? "Logging in…" : "Log in"}
+          </Button>
 
-        <p className="text-sm text-black/60 dark:text-white/60">
-          No account? <Link href="/register" className="underline">Register</Link>
-        </p>
-      </form>
+          <p className="text-center text-sm text-ink-secondary">
+            No account?{" "}
+            <Link href="/register" className="font-medium text-brand hover:underline">
+              Register
+            </Link>
+          </p>
+        </form>
+      </Card>
     </main>
   );
 }

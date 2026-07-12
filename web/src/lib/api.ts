@@ -43,16 +43,18 @@ export type Account = {
   created_at: string;
 };
 
-export type Transfer = {
-  transfer: {
-    id: number;
-    from_account_id: number;
-    to_account_id: number;
-    amount: number;
-    created_at: string;
-  };
+export type TransferResult = {
+  transfer: TransferRecord;
   from_account: Account;
   to_account: Account;
+};
+
+export type TransferRecord = {
+  id: number;
+  from_account_id: number;
+  to_account_id: number;
+  amount: number;
+  created_at: string;
 };
 
 export type LoginResponse = {
@@ -106,8 +108,27 @@ export function createTransfer(input: {
   amount: number;
   currency: string;
 }) {
-  return request<Transfer>("/transfers", {
+  return request<TransferResult>("/transfers", {
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export function listTransfers(accountId: number, pageId = 1, pageSize = 20) {
+  return request<TransferRecord[]>(
+    `/transfers?account_id=${accountId}&page_id=${pageId}&page_size=${pageSize}`,
+  );
+}
+
+export function getCurrentUser() {
+  return request<User>("/users/me");
+}
+
+export type LedgerVerification = {
+  valid: boolean;
+  broken_entry_id?: number;
+};
+
+export function verifyLedger() {
+  return request<LedgerVerification>("/ledger/verify");
 }

@@ -1,10 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import useSWR from "swr";
-import AuthGuard from "@/components/AuthGuard";
-import Nav from "@/components/Nav";
+import AppShell from "@/components/AppShell";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { EmptyState, ErrorBanner, LoadingState } from "@/components/ui/Feedback";
+import { Select } from "@/components/ui/Field";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { StatTile } from "@/components/ui/StatTile";
 import { ApiError, createAccount, listAccounts } from "@/lib/api";
+import { formatAmount, formatDateTime } from "@/lib/format";
 
 const CURRENCIES = ["USD", "EUR", "CAD"];
 
@@ -16,6 +22,14 @@ function AccountsView() {
   const [currency, setCurrency] = useState(CURRENCIES[0]);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+
+  const balancesByCurrency = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const account of accounts ?? []) {
+      totals.set(account.currency, (totals.get(account.currency) ?? 0) + account.balance);
+    }
+    return Array.from(totals.entries());
+  }, [accounts]);
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -32,69 +46,99 @@ function AccountsView() {
   }
 
   return (
-    <main className="flex-1 p-6 max-w-2xl mx-auto w-full flex flex-col gap-6">
-      <h1 className="text-xl font-semibold">Accounts</h1>
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        title="Accounts"
+        description="Balances across every currency you hold with us."
+      />
 
       {(error || loadError) && (
-        <p className="text-sm text-red-600">
-          {error ?? (loadError instanceof ApiError ? loadError.message : "failed to load accounts")}
-        </p>
+        <ErrorBanner
+          message={
+            error ?? (loadError instanceof ApiError ? loadError.message : "failed to load accounts")
+          }
+        />
       )}
 
       {isLoading ? (
-        <p className="text-sm text-black/60 dark:text-white/60">Loading...</p>
-      ) : !accounts || accounts.length === 0 ? (
-        <p className="text-sm text-black/60 dark:text-white/60">No accounts yet.</p>
+        <LoadingState message="Loading accounts…" />
       ) : (
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="text-left border-b border-black/10 dark:border-white/10">
-              <th className="py-2">ID</th>
-              <th className="py-2">Balance</th>
-              <th className="py-2">Currency</th>
-            </tr>
-          </thead>
-          <tbody>
-            {accounts.map((a) => (
-              <tr key={a.id} className="border-b border-black/5 dark:border-white/5">
-                <td className="py-2">{a.id}</td>
-                <td className="py-2">{a.balance}</td>
-                <td className="py-2">{a.currency}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          {balancesByCurrency.length > 0 && (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              {balancesByCurrency.map(([curr, total]) => (
+                <StatTile
+                  key={curr}
+                  label={curr}
+                  value={formatAmount(total, curr)}
+                  tone={total < 0 ? "critical" : "neutral"}
+                />
+              ))}
+            </div>
+          )}
+
+          {!accounts || accounts.length === 0 ? (
+            <EmptyState message="No accounts yet. Open one below to get started." />
+          ) : (
+            <Card className="divide-y divide-hairline overflow-hidden">
+              <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-ink-muted">
+                <span>Account</span>
+                <span>Currency</span>
+                <span className="text-right">Balance</span>
+              </div>
+              {accounts.map((a) => (
+                <div
+                  key={a.id}
+                  className="grid grid-cols-[1fr_auto_auto] items-center gap-4 px-4 py-3 text-sm"
+                >
+                  <div>
+                    <div className="font-medium text-ink-primary">Account #{a.id}</div>
+                    <div className="text-xs text-ink-muted">
+                      Opened {formatDateTime(a.created_at)}
+                    </div>
+                  </div>
+                  <span className="text-ink-secondary">{a.currency}</span>
+                  <span
+                    className={`tabular-nums text-right font-medium ${
+                      a.balance < 0 ? "text-status-critical" : "text-ink-primary"
+                    }`}
+                  >
+                    {formatAmount(a.balance, a.currency)}
+                  </span>
+                </div>
+              ))}
+            </Card>
+          )}
+        </>
       )}
 
-      <form onSubmit={onCreate} className="flex items-center gap-3">
-        <select
-          className="border rounded px-3 py-2 border-black/10 dark:border-white/20 bg-transparent"
-          value={currency}
-          onChange={(e) => setCurrency(e.target.value)}
-        >
-          {CURRENCIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-        <button
-          type="submit"
-          disabled={creating}
-          className="bg-black text-white dark:bg-white dark:text-black rounded px-3 py-2 disabled:opacity-50"
-        >
-          {creating ? "Creating..." : "New account"}
-        </button>
-      </form>
-    </main>
+      <Card className="flex flex-wrap items-end gap-3 p-4">
+        <form onSubmit={onCreate} className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-ink-secondary">
+              New account currency
+            </label>
+            <Select value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <Button type="submit" disabled={creating}>
+            {creating ? "Creating…" : "Open account"}
+          </Button>
+        </form>
+      </Card>
+    </div>
   );
 }
 
 export default function AccountsPage() {
   return (
-    <AuthGuard>
-      <Nav />
+    <AppShell>
       <AccountsView />
-    </AuthGuard>
+    </AppShell>
   );
 }

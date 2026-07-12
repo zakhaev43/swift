@@ -1,0 +1,28 @@
+# Go build artifacts
+/main
+*.exe
+*.test
+*.out
+
+# Local env overrides (app.env with real dev defaults is intentionally tracked)
+*.env.local
+*.env.*.local
+
+# Postgres data volumes used by ds/docker-compose.yml
+ds/master_data/
+ds/replica_data/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Node (web/ has its own, more specific .gitignore; this catches stray installs elsewhere)
+node_modules/

@@ -1,111 +1,126 @@
 "use client";
 
 import { useState } from "react";
-import AuthGuard from "@/components/AuthGuard";
-import Nav from "@/components/Nav";
-import { ApiError, Transfer, createTransfer } from "@/lib/api";
-
-const CURRENCIES = ["USD", "EUR", "CAD"];
+import useSWR from "swr";
+import AppShell from "@/components/AppShell";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { ErrorBanner, LoadingState, SuccessBanner } from "@/components/ui/Feedback";
+import { Input, Label, Select } from "@/components/ui/Field";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { ApiError, TransferResult, createTransfer, listAccounts } from "@/lib/api";
+import { formatAmount } from "@/lib/format";
 
 function TransferView() {
-  const [fromAccountId, setFromAccountId] = useState("");
+  const { data: accounts, isLoading } = useSWR("accounts", () => listAccounts());
+
+  const [fromAccountIdOverride, setFromAccountIdOverride] = useState("");
   const [toAccountId, setToAccountId] = useState("");
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState(CURRENCIES[0]);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<Transfer | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<TransferResult | null>(null);
+  const [sending, setSending] = useState(false);
+
+  const fromAccountId = fromAccountIdOverride || String(accounts?.[0]?.id ?? "");
+  const fromAccount = accounts?.find((a) => String(a.id) === fromAccountId);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!fromAccount) return;
     setError(null);
     setResult(null);
-    setLoading(true);
+    setSending(true);
     try {
       const transfer = await createTransfer({
         from_account_id: Number(fromAccountId),
         to_account_id: Number(toAccountId),
         amount: Number(amount),
-        currency,
+        currency: fromAccount.currency,
       });
       setResult(transfer);
+      setToAccountId("");
+      setAmount("");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "transfer failed");
     } finally {
-      setLoading(false);
+      setSending(false);
     }
   }
 
   return (
-    <main className="flex-1 flex items-center justify-center p-6">
-      <form onSubmit={onSubmit} className="w-full max-w-sm flex flex-col gap-4">
-        <h1 className="text-xl font-semibold">Send money</h1>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Send money"
+        description="Move funds from one of your accounts to any account ID."
+      />
 
-        <input
-          className="border rounded px-3 py-2 border-black/10 dark:border-white/20"
-          placeholder="From account ID"
-          type="number"
-          min={1}
-          value={fromAccountId}
-          onChange={(e) => setFromAccountId(e.target.value)}
-          required
-        />
-        <input
-          className="border rounded px-3 py-2 border-black/10 dark:border-white/20"
-          placeholder="To account ID"
-          type="number"
-          min={1}
-          value={toAccountId}
-          onChange={(e) => setToAccountId(e.target.value)}
-          required
-        />
-        <input
-          className="border rounded px-3 py-2 border-black/10 dark:border-white/20"
-          placeholder="Amount"
-          type="number"
-          min={1}
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          required
-        />
-        <select
-          className="border rounded px-3 py-2 border-black/10 dark:border-white/20 bg-transparent"
-          value={currency}
-          onChange={(e) => setCurrency(e.target.value)}
-        >
-          {CURRENCIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
+      <Card className="max-w-md p-6">
+        {isLoading ? (
+          <LoadingState message="Loading your accounts…" />
+        ) : !accounts || accounts.length === 0 ? (
+          <ErrorBanner message="You need an account before you can send money. Open one from the Accounts page." />
+        ) : (
+          <form onSubmit={onSubmit} className="flex flex-col gap-4">
+            <div>
+              <Label>From account</Label>
+              <Select
+                value={fromAccountId}
+                onChange={(e) => setFromAccountIdOverride(e.target.value)}
+                required
+              >
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    #{a.id} — {formatAmount(a.balance, a.currency)}
+                  </option>
+                ))}
+              </Select>
+            </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {result && (
-          <p className="text-sm text-green-600">
-            Transfer #{result.transfer.id} completed: {result.transfer.amount}{" "}
-            {currency} from account {result.transfer.from_account_id} to{" "}
-            {result.transfer.to_account_id}.
-          </p>
+            <div>
+              <Label>To account ID</Label>
+              <Input
+                type="number"
+                min={1}
+                placeholder="e.g. 3"
+                value={toAccountId}
+                onChange={(e) => setToAccountId(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <Label>Amount {fromAccount ? `(${fromAccount.currency})` : ""}</Label>
+              <Input
+                type="number"
+                min={1}
+                placeholder="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                required
+              />
+            </div>
+
+            {error && <ErrorBanner message={error} />}
+            {result && (
+              <SuccessBanner
+                message={`Sent ${formatAmount(result.transfer.amount, fromAccount?.currency ?? "USD")} to account #${result.transfer.to_account_id}.`}
+              />
+            )}
+
+            <Button type="submit" disabled={sending}>
+              {sending ? "Sending…" : "Send"}
+            </Button>
+          </form>
         )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-black text-white dark:bg-white dark:text-black rounded px-3 py-2 disabled:opacity-50"
-        >
-          {loading ? "Sending..." : "Send"}
-        </button>
-      </form>
-    </main>
+      </Card>
+    </div>
   );
 }
 
 export default function TransferPage() {
   return (
-    <AuthGuard>
-      <Nav />
+    <AppShell>
       <TransferView />
-    </AuthGuard>
+    </AppShell>
   );
 }
