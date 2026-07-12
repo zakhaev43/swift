@@ -24,5 +24,8 @@ Thumbs.db
 # Logs
 *.log
 
+# `make dev` PID/log files
+/.dev/
+
 # Node (web/ has its own, more specific .gitignore; this catches stray installs elsewhere)
 node_modules/
