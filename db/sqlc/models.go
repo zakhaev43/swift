@@ -24,6 +24,8 @@ type Entry struct {
 	// can be negative or positive
 	Amount    int64     `json:"amount"`
 	CreatedAt time.Time `json:"created_at"`
+	PrevHash  string    `json:"prev_hash"`
+	Hash      string    `json:"hash"`
 }
 
 type Session struct {

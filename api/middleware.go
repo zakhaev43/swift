@@ -16,6 +16,27 @@ const (
 	authorizationPayloadKey = "authorization_payload"
 )
 
+// corsMiddleware allows the Next.js frontend (a different origin) to call this API.
+func corsMiddleware(allowedOrigin string) gin.HandlerFunc {
+	if allowedOrigin == "" {
+		allowedOrigin = "http://localhost:3000"
+	}
+
+	return func(ctx *gin.Context) {
+		ctx.Header("Access-Control-Allow-Origin", allowedOrigin)
+		ctx.Header("Access-Control-Allow-Credentials", "true")
+		ctx.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		ctx.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
+
+		if ctx.Request.Method == http.MethodOptions {
+			ctx.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+
+		ctx.Next()
+	}
+}
+
 // AuthMiddleware creates a gin middleware for authorization
 func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 	abort := func(ctx *gin.Context, err error) {

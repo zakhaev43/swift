@@ -14,7 +14,7 @@ import (
 )
 
 type createAccountRequest struct {
-	Currency string `json: "currency" binding:"required,currency"`
+	Currency string `json:"currency" binding:"required,currency"`
 }
 
 func (server *Server) createAccount(ctx *gin.Context) {
@@ -22,14 +22,7 @@ func (server *Server) createAccount(ctx *gin.Context) {
 	var req createAccountRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-
-		pqErr, ok := err.(*pq.Error)
-		if ok {
-
-			ctx.JSON(http.StatusForbidden, errorResponse(pqErr))
-		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
@@ -45,8 +38,13 @@ func (server *Server) createAccount(ctx *gin.Context) {
 	account, err := server.store.CreateAccount(ctx, arg)
 
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
+			msg := fmt.Errorf("you already have a %s account", req.Currency)
+			ctx.JSON(http.StatusConflict, errorResponse(msg))
+			return
+		}
 
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 

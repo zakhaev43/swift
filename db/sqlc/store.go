@@ -6,12 +6,14 @@ import (
 	"fmt"
 
 	"github.com/lib/pq"
+	"github.com/zakhaev43/Swift-Transfer/util"
 )
 
 // Store interface defines all functions to execute db queries and transactions
 type Store interface {
 	Querier
 	TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error)
+	VerifyEntryChain(ctx context.Context) (bool, int64, error)
 }
 
 // SQLStore provides all functions to execute SQL queries and transactions
@@ -98,6 +100,11 @@ func (store *SQLStore) TransferTx(ctx context.Context, arg TransferTxParams) (Tr
 			return err
 		}
 
+		lastHash, err := q.GetLastEntryHash(ctx)
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+
 		result.FromEntry, err = q.CreateEntry(ctx, CreateEntryParams{
 			AccountID: arg.FromAccountID,
 			Amount:    -arg.Amount,
@@ -106,9 +113,29 @@ func (store *SQLStore) TransferTx(ctx context.Context, arg TransferTxParams) (Tr
 			return err
 		}
 
+		fromHash := util.ChainHash(lastHash, result.FromEntry.ID, result.FromEntry.AccountID, result.FromEntry.Amount, result.FromEntry.CreatedAt)
+		result.FromEntry, err = q.SetEntryHash(ctx, SetEntryHashParams{
+			ID:       result.FromEntry.ID,
+			PrevHash: lastHash,
+			Hash:     fromHash,
+		})
+		if err != nil {
+			return err
+		}
+
 		result.ToEntry, err = q.CreateEntry(ctx, CreateEntryParams{
 			AccountID: arg.ToAccountID,
 			Amount:    arg.Amount,
+		})
+		if err != nil {
+			return err
+		}
+
+		toHash := util.ChainHash(fromHash, result.ToEntry.ID, result.ToEntry.AccountID, result.ToEntry.Amount, result.ToEntry.CreatedAt)
+		result.ToEntry, err = q.SetEntryHash(ctx, SetEntryHashParams{
+			ID:       result.ToEntry.ID,
+			PrevHash: fromHash,
+			Hash:     toHash,
 		})
 		if err != nil {
 			return err
@@ -124,6 +151,28 @@ func (store *SQLStore) TransferTx(ctx context.Context, arg TransferTxParams) (Tr
 	})
 
 	return result, err
+}
+
+// VerifyEntryChain walks the entries ledger in order and recomputes each
+// entry's hash from its data and the previous entry's hash. It returns false
+// and the ID of the first entry whose stored hash doesn't match what the
+// chain implies — evidence that entry (or one before it) was tampered with.
+func (store *SQLStore) VerifyEntryChain(ctx context.Context) (bool, int64, error) {
+	entries, err := store.ListAllEntries(ctx)
+	if err != nil {
+		return false, 0, err
+	}
+
+	prevHash := util.GenesisHash
+	for _, entry := range entries {
+		expectedHash := util.ChainHash(prevHash, entry.ID, entry.AccountID, entry.Amount, entry.CreatedAt)
+		if entry.PrevHash != prevHash || entry.Hash != expectedHash {
+			return false, entry.ID, nil
+		}
+		prevHash = entry.Hash
+	}
+
+	return true, 0, nil
 }
 
 func addMoney(

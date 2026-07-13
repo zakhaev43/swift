@@ -1,5 +1,5 @@
 # Build Stage
-FROM golang:1.23.4-alpine3.20 AS builder
+FROM golang:1.26.5-alpine3.24 AS builder
 WORKDIR /app
 COPY . .
 
@@ -10,7 +10,7 @@ RUN chmod +x wait-for.sh
 
 
 # Run Stage
-FROM alpine:3.20
+FROM alpine:3.24
 WORKDIR /app
 COPY --from=builder /app/main .
 

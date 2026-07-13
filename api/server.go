@@ -45,6 +45,7 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 
 func (server *Server) setUpRouter() {
 	router := gin.Default()
+	router.Use(corsMiddleware(server.config.AllowedOrigin))
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRoutes.POST("/accounts", server.createAccount)
 	authRoutes.GET("/accounts/:id", server.getAccount)
@@ -52,6 +53,9 @@ func (server *Server) setUpRouter() {
 	authRoutes.DELETE("/accounts/:id", server.deleteAccount)
 	authRoutes.PUT("/accounts", server.updateAccount)
 	authRoutes.POST("/transfers", server.createTransfer)
+	authRoutes.GET("/transfers", server.listTransfers)
+	authRoutes.GET("/ledger/verify", server.verifyLedger)
+	authRoutes.GET("/users/me", server.getCurrentUser)
 
 	//They dont require auth middleware
 	router.POST("/users", server.createUser)

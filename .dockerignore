@@ -1,0 +1,20 @@
+# The api build context is the whole repo (docker-compose.yaml uses `context: .`),
+# so keep the frontend, docs, and VCS metadata out of it.
+.git
+.github
+docs/
+web/
+
+# Go build output
+main
+*.test
+
+# Local env / IDE / OS cruft
+*.env.local
+.vscode/
+.idea/
+.DS_Store
+
+# Postgres data volumes
+ds/master_data/
+ds/replica_data/

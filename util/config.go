@@ -12,10 +12,11 @@ type Config struct {
 	DBDriver             string        `mapstructure:"DB_DRIVER"`
 	DBSource             string        `mapstructure:"DB_SOURCE"`
 	MigrationURL         string        `mapstructure:"MIGRATION_URL"`
-	ServerAddress        string        `mapstructure:"SERVER_ADDRESS"`
+	ServerAddress        string        `mapstructure:"HTTP_SERVER_ADDRESS"`
 	TokenSymmetricKey    string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
 	AccessTokenDuration  time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 	RefreshTokenDuration time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
+	AllowedOrigin        string        `mapstructure:"ALLOWED_ORIGIN"`
 }
 
 // LoadConfig reads configuration from environment file or variables

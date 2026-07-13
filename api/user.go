@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	db "github.com/zakhaev43/Swift-Transfer/db/sqlc"
+	"github.com/zakhaev43/Swift-Transfer/token"
 	"github.com/zakhaev43/Swift-Transfer/util"
 )
 
@@ -74,6 +75,23 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, rsp)
 
+}
+
+func (server *Server) getCurrentUser(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	user, err := server.store.GetUser(ctx, authPayload.Username)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, newUserResponse(user))
 }
 
 type loginUserRequest struct {
