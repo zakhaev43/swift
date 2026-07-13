@@ -11,10 +11,12 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatTile } from "@/components/ui/StatTile";
 import { ApiError, createAccount, listAccounts } from "@/lib/api";
 import { formatAmount, formatDateTime } from "@/lib/format";
+import { useDocumentTitle } from "@/lib/useDocumentTitle";
 
 const CURRENCIES = ["USD", "EUR", "CAD"];
 
 function AccountsView() {
+  useDocumentTitle("Accounts");
   const { data: accounts, error: loadError, isLoading, mutate } = useSWR(
     "accounts",
     () => listAccounts(),

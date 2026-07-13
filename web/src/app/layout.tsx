@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Swift Transfer",
+  title: "Swift",
   description: "Money transfer app",
 };
 

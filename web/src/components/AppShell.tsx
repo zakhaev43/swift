@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ReactNode, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import AuthGuard from "@/components/AuthGuard";
+import { Logo } from "@/components/ui/Logo";
 import { clearSession, subscribeAuth, usernameSnapshot } from "@/lib/auth";
 
 const NAV_LINKS = [
@@ -28,19 +29,19 @@ function Header() {
 
   return (
     <header className="sticky top-0 z-10 border-b border-hairline bg-surface/95 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3">
-        <div className="flex items-center gap-8">
-          <Link href="/accounts" className="text-sm font-semibold tracking-tight text-ink-primary">
-            Swift Transfer
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
+        <div className="flex items-center gap-4 sm:gap-8">
+          <Link href="/accounts" className="shrink-0">
+            <Logo />
           </Link>
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-1 overflow-x-auto">
             {NAV_LINKS.map((link) => {
               const active = pathname === link.href;
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`shrink-0 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                     active
                       ? "bg-brand/10 text-brand"
                       : "text-ink-secondary hover:text-ink-primary"
@@ -62,7 +63,7 @@ function Header() {
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand text-xs font-semibold text-brand-ink">
                 {initials(username)}
               </span>
-              {username}
+              <span className="hidden sm:inline">{username}</span>
             </Link>
             <button
               onClick={logout}

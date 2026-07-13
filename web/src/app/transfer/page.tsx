@@ -10,8 +10,10 @@ import { Input, Label, Select } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ApiError, TransferResult, createTransfer, listAccounts } from "@/lib/api";
 import { formatAmount } from "@/lib/format";
+import { useDocumentTitle } from "@/lib/useDocumentTitle";
 
 function TransferView() {
+  useDocumentTitle("Transfer");
   const { data: accounts, isLoading } = useSWR("accounts", () => listAccounts());
 
   const [fromAccountIdOverride, setFromAccountIdOverride] = useState("");

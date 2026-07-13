@@ -7,6 +7,7 @@ import { ErrorBanner, LoadingState } from "@/components/ui/Feedback";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ApiError, getCurrentUser, listAccounts, verifyLedger } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { useDocumentTitle } from "@/lib/useDocumentTitle";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -17,6 +18,7 @@ function initials(name: string): string {
 }
 
 function ProfileView() {
+  useDocumentTitle("Profile");
   const { data: user, error, isLoading } = useSWR("me", () => getCurrentUser());
   const { data: accounts } = useSWR("accounts", () => listAccounts());
   const { data: ledger } = useSWR("ledger-verify", () => verifyLedger());

@@ -9,8 +9,11 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ErrorBanner } from "@/components/ui/Feedback";
 import { Input, Label } from "@/components/ui/Field";
+import { Logo } from "@/components/ui/Logo";
+import { useDocumentTitle } from "@/lib/useDocumentTitle";
 
 export default function LoginPage() {
+  useDocumentTitle("Log in");
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -35,10 +38,8 @@ export default function LoginPage() {
   return (
     <main className="flex flex-1 items-center justify-center p-6">
       <Card className="w-full max-w-sm p-8">
-        <div className="mb-6 text-center">
-          <div className="text-sm font-semibold tracking-tight text-ink-primary">
-            Swift Transfer
-          </div>
+        <div className="mb-6 flex flex-col items-center text-center">
+          <Logo size="lg" />
           <h1 className="mt-3 text-xl font-semibold text-ink-primary">Log in</h1>
         </div>
 

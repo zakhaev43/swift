@@ -7,6 +7,7 @@ import { EmptyState, ErrorBanner, LoadingState } from "@/components/ui/Feedback"
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Account, ApiError, listAccounts, listTransfers } from "@/lib/api";
 import { formatAmount, formatDateTime } from "@/lib/format";
+import { useDocumentTitle } from "@/lib/useDocumentTitle";
 
 type HistoryEntry = {
   id: number;
@@ -41,6 +42,7 @@ async function loadHistory(accounts: Account[]): Promise<HistoryEntry[]> {
 }
 
 function HistoryView() {
+  useDocumentTitle("History");
   const { data: accounts, error: accountsError, isLoading: loadingAccounts } = useSWR(
     "accounts",
     () => listAccounts(),
